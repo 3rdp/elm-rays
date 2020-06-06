@@ -1,6 +1,7 @@
 module View.Svg exposing (root)
 
 import Html exposing (Html)
+import Html.Events as Event
 import Raycasting
 import String
 import Svg exposing (..)
@@ -8,17 +9,32 @@ import Svg.Attributes exposing (..)
 import Types exposing (..)
 import Vectors exposing (..)
 
+noopSvg = g [] []
 
-root : Walls -> Position -> Html msg
-root walls position =
+root : Model -> Html Msg
+root model =
     svg
         [ width "600"
         , height "600"
+        -- FIXME: don't render this onClick handler if we're not in drawing state
+        , Event.onClick SvgRootClick
         ]
-        [ drawRays walls position
-        , drawWalls walls
-        , drawCursor position
+        [ case model.mouse of
+            Just mousePosition ->
+                drawRays model.walls mousePosition
+            _ ->
+                noopSvg
+        , drawWalls model.walls
+        , case model.mouse of
+            Just mousePosition ->
+                -- TODO: draw different cursor depending on wherther you're raycasting or doing anything else
+                drawCursor mousePosition
+            _ ->
+                noopSvg
+        -- , drawFloatingButton model.cursor
+        -- , drawFloatingButton (Debug.log "drawFloatingButton" model.cursor)
         ]
+        -- done: render a floating action button, it will indicate CursorState
 
 
 neighbours : List a -> List ( a, a )
@@ -104,3 +120,32 @@ drawCursor position =
         , fill "red"
         ]
         []
+
+circleForFAB =
+    circle
+        [ cx "550"
+        , cy "550"
+        , r "40"
+        , fill "magenta"
+        ] []
+
+textForFAB = text_ [ x "535", y "570", fill "white", fontSize "50", fontFamily "monospace" ]
+
+drawFloatingButton : CursorState -> Svg Msg
+drawFloatingButton cursor =
+    case cursor of
+        Raycasting ->
+            g [ Event.onClick CursorStateChange ]
+            [ circleForFAB
+            , textForFAB [ text "R" ]
+            ]
+        Drawing ->
+            g [ Event.onClick CursorStateChange ]
+            [ circleForFAB
+            , textForFAB [ text "D" ]
+            ]
+        Erasing ->
+            g [ Event.onClick CursorStateChange ]
+            [ circleForFAB
+            , textForFAB [ text "E" ]
+            ]

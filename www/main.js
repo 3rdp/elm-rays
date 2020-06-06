@@ -9628,12 +9628,20 @@ var $elm$core$Basics$never = function (_v0) {
 };
 var $elm$browser$Browser$element = _Browser_element;
 var $author$project$State$initialCmd = $elm$core$Platform$Cmd$none;
+var $author$project$Vectors$Position = F2(
+	function (x, y) {
+		return {x: x, y: y};
+	});
+var $author$project$Types$Raycasting = {$: 'Raycasting'};
 var $elm$core$Basics$pi = _Basics_pi;
 var $elm$core$Basics$degrees = function (angleInDegrees) {
 	return (angleInDegrees * $elm$core$Basics$pi) / 180;
 };
 var $author$project$State$initialModel = {
+	camera: A2($author$project$Vectors$Position, 0, 0),
+	cursor: $author$project$Types$Raycasting,
 	mouse: $elm$core$Maybe$Nothing,
+	vectorStart: $elm$core$Maybe$Nothing,
 	walls: _List_fromArray(
 		[
 			{
@@ -9765,6 +9773,47 @@ var $author$project$View$copy = A2(
 						]))
 				]))
 		]));
+var $author$project$Types$CursorStateChange = {$: 'CursorStateChange'};
+var $author$project$View$circleForFAB = $elm$html$Html$div(
+	_List_fromArray(
+		[
+			A2($elm$html$Html$Attributes$style, 'position', 'absolute'),
+			A2($elm$html$Html$Attributes$style, 'width', '80px'),
+			A2($elm$html$Html$Attributes$style, 'height', '80px'),
+			A2($elm$html$Html$Attributes$style, 'border-radius', '40px'),
+			A2($elm$html$Html$Attributes$style, 'background-color', 'magenta'),
+			A2($elm$html$Html$Attributes$style, 'color', 'white'),
+			A2($elm$html$Html$Attributes$style, 'font-size', '50px'),
+			A2($elm$html$Html$Attributes$style, 'font-family', 'monospace'),
+			A2($elm$html$Html$Attributes$style, 'right', '20px'),
+			A2($elm$html$Html$Attributes$style, 'bottom', '60px'),
+			A2($elm$html$Html$Attributes$style, 'text-align', 'center'),
+			A2($elm$html$Html$Attributes$style, 'line-height', '80px'),
+			$elm$html$Html$Events$onClick($author$project$Types$CursorStateChange)
+		]));
+var $author$project$View$drawFloatingBtn = function (cursor) {
+	switch (cursor.$) {
+		case 'Raycasting':
+			return $author$project$View$circleForFAB(
+				_List_fromArray(
+					[
+						$elm$html$Html$text('R')
+					]));
+		case 'Drawing':
+			return $author$project$View$circleForFAB(
+				_List_fromArray(
+					[
+						$elm$html$Html$text('D')
+					]));
+		default:
+			return $author$project$View$circleForFAB(
+				_List_fromArray(
+					[
+						$elm$html$Html$text('E')
+					]));
+	}
+};
+var $author$project$Types$SvgRootClick = {$: 'SvgRootClick'};
 var $elm$svg$Svg$trustedNode = _VirtualDom_nodeNS('http://www.w3.org/2000/svg');
 var $elm$svg$Svg$circle = $elm$svg$Svg$trustedNode('circle');
 var $elm$svg$Svg$Attributes$cx = _VirtualDom_attribute('cx');
@@ -10061,40 +10110,60 @@ var $author$project$View$Svg$drawWalls = function (walls) {
 		A2($elm$core$List$map, $author$project$View$Svg$drawLine, walls));
 };
 var $elm$svg$Svg$Attributes$height = _VirtualDom_attribute('height');
+var $author$project$View$Svg$noopSvg = A2($elm$svg$Svg$g, _List_Nil, _List_Nil);
 var $elm$svg$Svg$svg = $elm$svg$Svg$trustedNode('svg');
 var $elm$svg$Svg$Attributes$width = _VirtualDom_attribute('width');
-var $author$project$View$Svg$root = F2(
-	function (walls, position) {
-		return A2(
-			$elm$svg$Svg$svg,
-			_List_fromArray(
-				[
-					$elm$svg$Svg$Attributes$width('600'),
-					$elm$svg$Svg$Attributes$height('600')
-				]),
-			_List_fromArray(
-				[
-					A2($author$project$View$Svg$drawRays, walls, position),
-					$author$project$View$Svg$drawWalls(walls),
-					$author$project$View$Svg$drawCursor(position)
-				]));
-	});
-var $author$project$View$root = function (model) {
+var $author$project$View$Svg$root = function (model) {
 	return A2(
-		$elm$html$Html$div,
-		_List_Nil,
+		$elm$svg$Svg$svg,
+		_List_fromArray(
+			[
+				$elm$svg$Svg$Attributes$width('600'),
+				$elm$svg$Svg$Attributes$height('600'),
+				$elm$html$Html$Events$onClick($author$project$Types$SvgRootClick)
+			]),
 		_List_fromArray(
 			[
 				function () {
 				var _v0 = model.mouse;
 				if (_v0.$ === 'Just') {
-					var position = _v0.a;
-					return A2($author$project$View$Svg$root, model.walls, position);
+					var mousePosition = _v0.a;
+					return A2($author$project$View$Svg$drawRays, model.walls, mousePosition);
 				} else {
-					return $elm$html$Html$text('Initializing.');
+					return $author$project$View$Svg$noopSvg;
 				}
 			}(),
-				$author$project$View$copy
+				$author$project$View$Svg$drawWalls(model.walls),
+				function () {
+				var _v1 = model.mouse;
+				if (_v1.$ === 'Just') {
+					var mousePosition = _v1.a;
+					return $author$project$View$Svg$drawCursor(mousePosition);
+				} else {
+					return $author$project$View$Svg$noopSvg;
+				}
+			}()
+			]));
+};
+var $author$project$View$root = function (model) {
+	return A2(
+		$elm$html$Html$div,
+		_List_fromArray(
+			[
+				A2($elm$html$Html$Attributes$style, 'display', 'flex'),
+				A2($elm$html$Html$Attributes$style, 'flex-direction', 'row')
+			]),
+		_List_fromArray(
+			[
+				A2(
+				$elm$html$Html$div,
+				_List_Nil,
+				_List_fromArray(
+					[
+						$author$project$View$Svg$root(model)
+					])),
+				$author$project$View$copy,
+				$author$project$View$drawFloatingBtn(model.cursor)
 			]));
 };
 var $elm$json$Json$Decode$at = F2(
@@ -10294,10 +10363,6 @@ var $elm$browser$Browser$Events$onMouseMove = A2($elm$browser$Browser$Events$on,
 var $author$project$Types$Change = function (a) {
 	return {$: 'Change', a: a};
 };
-var $author$project$Vectors$Position = F2(
-	function (x, y) {
-		return {x: x, y: y};
-	});
 var $author$project$State$toPositionMsg = F2(
 	function (x, y) {
 		return $author$project$Types$Change(
@@ -10311,18 +10376,78 @@ var $author$project$State$subscriptions = function (_v0) {
 			A2($author$project$State$log, 'X:', $author$project$State$decodeXPosition),
 			$author$project$State$decodeYPosition));
 };
+var $author$project$Types$Drawing = {$: 'Drawing'};
+var $author$project$Types$Erasing = {$: 'Erasing'};
 var $author$project$State$update = F2(
 	function (msg, model) {
-		var position = msg.a;
-		return _Utils_Tuple2(
-			_Utils_update(
-				model,
-				{
-					mouse: $elm$core$Maybe$Just(position)
-				}),
-			$elm$core$Platform$Cmd$none);
+		switch (msg.$) {
+			case 'Change':
+				var position = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{
+							mouse: $elm$core$Maybe$Just(position)
+						}),
+					$elm$core$Platform$Cmd$none);
+			case 'CursorStateChange':
+				var _v1 = model.cursor;
+				switch (_v1.$) {
+					case 'Raycasting':
+						return _Utils_Tuple2(
+							_Utils_update(
+								model,
+								{cursor: $author$project$Types$Drawing}),
+							$elm$core$Platform$Cmd$none);
+					case 'Drawing':
+						return _Utils_Tuple2(
+							_Utils_update(
+								model,
+								{cursor: $author$project$Types$Erasing}),
+							$elm$core$Platform$Cmd$none);
+					default:
+						return _Utils_Tuple2(
+							_Utils_update(
+								model,
+								{cursor: $author$project$Types$Raycasting}),
+							$elm$core$Platform$Cmd$none);
+				}
+			default:
+				var _v2 = model.cursor;
+				if (_v2.$ === 'Drawing') {
+					var _v3 = model.vectorStart;
+					if (_v3.$ === 'Nothing') {
+						return _Utils_Tuple2(
+							_Utils_update(
+								model,
+								{vectorStart: model.mouse}),
+							$elm$core$Platform$Cmd$none);
+					} else {
+						var vectorStart = _v3.a;
+						return _Utils_Tuple2(
+							_Utils_update(
+								model,
+								{
+									vectorStart: $elm$core$Maybe$Nothing,
+									walls: A2(
+										$elm$core$List$cons,
+										A2(
+											$author$project$Vectors$lineBetween,
+											vectorStart,
+											A2(
+												$elm$core$Maybe$withDefault,
+												A2($author$project$Vectors$Position, 0, 0),
+												model.mouse)),
+										model.walls)
+								}),
+							$elm$core$Platform$Cmd$none);
+					}
+				} else {
+					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+				}
+		}
 	});
 var $author$project$Main$main = $elm$browser$Browser$element(
 	{init: $author$project$Main$init, subscriptions: $author$project$State$subscriptions, update: $author$project$State$update, view: $author$project$View$root});
 _Platform_export({'Main':{'init':$author$project$Main$main(
-	$elm$json$Json$Decode$succeed(_Utils_Tuple0))({"versions":{"elm":"0.19.1"},"types":{"message":"Types.Msg","aliases":{"Vectors.Position":{"args":[],"type":"{ x : Basics.Float, y : Basics.Float }"}},"unions":{"Types.Msg":{"args":[],"tags":{"Change":["Vectors.Position"]}},"Basics.Float":{"args":[],"tags":{"Float":[]}}}}})}});}(this));
+	$elm$json$Json$Decode$succeed(_Utils_Tuple0))({"versions":{"elm":"0.19.1"},"types":{"message":"Types.Msg","aliases":{"Vectors.Position":{"args":[],"type":"{ x : Basics.Float, y : Basics.Float }"}},"unions":{"Types.Msg":{"args":[],"tags":{"Change":["Vectors.Position"],"CursorStateChange":[],"SvgRootClick":[]}},"Basics.Float":{"args":[],"tags":{"Float":[]}}}}})}});}(this));

@@ -9,6 +9,7 @@ import Types exposing (..)
 import Json.Decode as Decode
 import Vectors exposing (..)
 
+
 initialModel : Model
 initialModel =
     { walls =
@@ -24,6 +25,9 @@ initialModel =
         , { position = { x = 300, y = 150 }, vector = { length = 200, angle = degrees 30 } }
         ]
     , mouse = Nothing
+    , camera = Position 0 0
+    , cursor = Raycasting
+    , vectorStart = Nothing
     }
 
 
@@ -38,8 +42,42 @@ update msg model =
         Change position ->
             -- ( { model | mouse = Just mouse }
             ( { model | mouse = Just position }
+            -- TODO: calculate vector degree and length using vectorStart and mouse.model
             , Cmd.none
             )
+        CursorStateChange ->
+            case model.cursor of
+                Raycasting ->
+                  ( { model | cursor = Drawing }
+                  , Cmd.none
+                  )
+                Drawing ->
+                  ( { model | cursor = Erasing }
+                  , Cmd.none
+                  )
+                Erasing ->
+                  ( { model | cursor = Raycasting }
+                  , Cmd.none
+                  )
+        -- FIXME: this triggers when you press on floating button and the click propagates to svg root
+        -- (a) don't emit SvgRootClick if we're not Drawing, emit noop Msg
+        -- (b) OR place floating button out of the svg at all, it could be just html, even placed in floating
+        -- position with absolution positioning
+        SvgRootClick ->
+            case model.cursor of
+                Drawing ->
+                    case model.vectorStart of
+                        Nothing ->
+                            ( { model | vectorStart = model.mouse }
+                            , Cmd.none
+                            )
+                        Just vectorStart ->
+                            ( { model | walls = (lineBetween vectorStart (Maybe.withDefault (Position 0 0) model.mouse)) :: model.walls, vectorStart = Nothing  }
+                            , Cmd.none
+                            )
+                _ ->
+                  ( model, Cmd.none )
+
 
 decodeXPosition : Decode.Decoder Float
 decodeXPosition =

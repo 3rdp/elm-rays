@@ -1,25 +1,22 @@
 module View exposing (root)
 
 import Html exposing (..)
+import Html.Events as Event
 import Html.Attributes exposing (..)
 import Types exposing (..)
 import View.Svg
 
 
-root : Model -> Html msg
+root : Model -> Html Msg
 root model =
-    div []
-        [ case model.mouse of
-            Just position ->
-                View.Svg.root model.walls position
-
-            _ ->
-                Html.text "Initializing."
+    div [ style "display" "flex", style "flex-direction" "row"]
+        [ div [] [ View.Svg.root model ]
         , copy
+        , drawFloatingBtn model.cursor
         ]
 
 
-copy : Html msg
+copy : Html Msg
 copy =
     div
         [ style
@@ -40,3 +37,30 @@ copy =
                 ]
             ]
         ]
+
+circleForFAB =
+    div
+        [ style "position" "absolute"
+        , style "width" "80px"
+        , style "height" "80px"
+        , style "border-radius" "40px"
+        , style "background-color" "magenta"
+        , style "color" "white"
+        , style "font-size" "50px"
+        , style "font-family" "monospace"
+        , style "right" "20px"
+        , style "bottom" "60px"
+        , style "text-align" "center"
+        , style "line-height" "80px"
+        , Event.onClick CursorStateChange
+        ]
+
+drawFloatingBtn : CursorState -> Html Msg
+drawFloatingBtn cursor =
+    case cursor of
+        Raycasting ->
+            circleForFAB [ text "R" ]
+        Drawing ->
+            circleForFAB [ text "D" ]
+        Erasing ->
+            circleForFAB [ text "E" ]
